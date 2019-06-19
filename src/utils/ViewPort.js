@@ -76,7 +76,7 @@ export class ViewPort {
             this.sceneHelpers.updateMatrixWorld();
             this.renderer.render(this.sceneHelpers, this.camera);
         }
-        console.log(this.scene);
+        console.log(this);
 
     }
 
