@@ -265,6 +265,45 @@ export class Editor {
         this.signals.objectSelected.dispatch(object);
     }
 
+    selectById(id) {
+
+        if (id === this.camera.id) {
+
+            this.select(this.camera);
+            return;
+
+        }
+
+        this.select(this.scene.getObjectById(id, true));
+
+    }
+
+    selectByUuid(uuid) {
+
+        var scope = this;
+
+        this.scene.traverse(function (child) {
+
+            if (child.uuid === uuid) {
+
+                scope.select(child);
+
+            }
+
+        });
+
+    }
+
+    focus(object) {
+        if (object !== undefined) {
+            this.signals.objectChanged.dispatch(object);
+        }
+    }
+
+    foucusById(id) {
+        this.focus(this.scene.getObjectById(id, true));
+    }
+
     addObject(object) {
         object.traverse((child) => {
             if (child.geometry !== undefined) this.addGeometry(child.geometry);
@@ -290,6 +329,12 @@ export class Editor {
         object.parent.remove(object);
         this.signals.objectRemoved.dispatch(object);
         this.signals.sceneGraphChanged.dispatch();
+    }
+
+    objectByUuid(uuid) {
+
+        return this.scene.getObjectByProperty('uuid', uuid, true);
+
     }
 
     addGeometry(geometry) {

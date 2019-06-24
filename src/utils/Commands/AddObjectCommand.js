@@ -15,12 +15,12 @@ export class AddObjectCommand extends Command {
     }
 
     excute() {
-        this.editor.addObject( this.object );
-        this.editor.select( this.object );
+        this.editor.addObject(this.object);
+        this.editor.select(this.object);
     }
 
-    undo () {
-        this.editor.removeObject( this.object );
+    undo() {
+        this.editor.removeObject(this.object);
         this.editor.deselect();
     }
 }

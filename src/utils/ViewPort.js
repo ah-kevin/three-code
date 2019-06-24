@@ -18,6 +18,7 @@ export class ViewPort {
         this.renderer = null;
         this.camera = editor.camera;
         this.defaultCamera = editor.camera;
+        this.select = editor.select;
         this.scene = editor.scene;
         this.sceneHelpers = editor.sceneHelpers;
         this.objects = [];
@@ -25,9 +26,15 @@ export class ViewPort {
         this.objectPositionOnDown = null;
         this.objectRotationOnDown = null;
         this.objectScaleOnDown = null;
+
+        this.onDownPosition = new THREE.Vector2();
+        this.onUpPosition = new THREE.Vector2();
+        this.onDoubleClickPosition = new THREE.Vector2();
+
         // helpers
         this.addHelpers();
         this.registerSignals();
+
         // Controls
         this.transformControls = new TransformControls(this.camera, this.container.dom);
         this.transformControls.addEventListener('change', () => {
@@ -99,6 +106,12 @@ export class ViewPort {
 
         this.sceneHelpers.add(this.transformControls);
 
+        // object选取
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+
+        // events
+        this.addEvents();
         this.controls = new EditorControls(this.camera, this.container.dom);
         this.controls.addEventListener('change', () => {
             this.signals.cameraChanged.dispatch(this.camera);
@@ -117,7 +130,10 @@ export class ViewPort {
     }
 
     registerSignals() {
-        this.signals.editorCleared.add(_ => this.render());
+        this.signals.editorCleared.add(_ => {
+            this.controls.center.set(0, 0, 0);
+            this.render();
+        });
         this.signals.rendererChanged.add(newRenderer => {
             if (this.renderer !== null) {
                 this.container.dom.removeChild(this.renderer.domElement);
@@ -170,6 +186,17 @@ export class ViewPort {
         this.signals.spaceChanged.add((space) => {
             this.transformControls.setSpace(space);
         });
+
+        this.signals.objectFocused.add(object => {
+            this.controls.focus(object);
+        });
+
+        this.signals.geometryChanged.add(object => {
+            if (object !== undefined) {
+                this.selectionBox.setFromObject(object);
+            }
+            this.render();
+        });
     }
 
     render() {
@@ -191,6 +218,115 @@ export class ViewPort {
                 array[i + j] = 0.26;
             }
         }
+    }
+
+    getMousePosition(dom, x, y) {
+        let rect = dom.getBoundingClientRect();
+        return [(x - rect.left) / rect.width, (y - rect.top) / rect.height];
+    }
+
+    addEvents() {
+
+        this.container.dom.addEventListener('mousedown', (ev) => this.onMouseDown(ev), false);
+        this.container.dom.addEventListener('mouseup', (ev) => this.onMouseUp(ev), false);
+        this.container.dom.addEventListener('touchstart', (ev) => this.onTouchStart(ev), false);
+        this.container.dom.addEventListener('dblclick', (ev) => this.onDoubleClick(ev), false);
+    }
+
+    onMouseDown(event) {
+        let arr = this.getMousePosition(this.container.dom, event.clientX, event.clientY);
+        this.onDownPosition.fromArray(arr);
+        // document.addEventListener("mouseup", (ev) => this.onMouseUp(ev), false);
+    }
+
+    onMouseUp(event) {
+        let arr = this.getMousePosition(this.container.dom, event.clientX, event.clientY);
+        this.onUpPosition.fromArray(arr);
+        this.handleClick();
+        // document.removeEventListener("mouseup", this.onMouseUp.bind(this), false);
+    }
+
+    onDoubleClick(event) {
+        let array = this.getMousePosition(this.container.dom, event.clientX, event.clientY);
+        this.onDoubleClickPosition.fromArray(array);
+
+        let intersects = this.getIntersects(this.onDoubleClickPosition, this.objects);
+        console.log(intersects);
+        if (intersects.length > 0) {
+
+            let intersect = intersects[0];
+
+            this.signals.objectFocused.dispatch(intersect.object);
+
+        }
+    }
+
+
+    onTouchStart(event) {
+
+        let touch = event.changedTouches[0];
+
+        let array = this.getMousePosition(this.container.dom, touch.clientX, touch.clientY);
+        this.onDownPosition.fromArray(array);
+
+        document.addEventListener('touchend', (event) => this.onTouchEnd(event), false);
+
+    }
+
+    onTouchEnd(event) {
+        let touch = event.changedTouches[0];
+
+        let array = this.getMousePosition(this.container.dom, touch.clientX, touch.clientY);
+        this.onUpPosition.fromArray(array);
+
+        this.handleClick();
+
+        document.removeEventListener('touchend', ev => this.onTouchEnd(ev), false);
+    }
+
+    handleClick() {
+
+        if (this.onDownPosition.distanceTo(this.onUpPosition) === 0) {
+
+            let intersects = this.getIntersects(this.onUpPosition, this.objects);
+            console.log(intersects);
+            if (intersects.length > 0) {
+
+                let object = intersects[0].object;
+
+                if (object.userData.object !== undefined) {
+
+                    // helper
+
+                    this.select(object.userData.object);
+
+                } else {
+
+                    this.select(object);
+
+                }
+
+            } else {
+
+                this.select(null);
+
+            }
+
+            this.render();
+
+        }
+    }
+
+    /**
+     * // 将鼠标位置归一化为设备坐标。x 和 y 方向的取值范围是 (-1 to +1)
+     */
+    getIntersects(point, objects) {
+
+        this.mouse.set((point.x * 2) - 1, -(point.y * 2) + 1);
+        // 通过摄像机和鼠标位置更新射线
+        this.raycaster.setFromCamera(this.mouse, this.camera);
+        // 计算物体和射线的焦点
+        return this.raycaster.intersectObjects(objects);
     }
 
 }

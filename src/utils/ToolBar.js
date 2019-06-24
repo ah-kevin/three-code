@@ -27,7 +27,7 @@ export class ToolBar {
         buttons.add(addBox);
     }
 
-    transform(editor) {
+    transform() {
         let groups = new UI.Panel();
         groups.setDisplay('none');
         this.container.add(groups);
@@ -62,10 +62,11 @@ export class ToolBar {
         var local = new UI.THREE.Boolean(false, '本地');
         local.onChange(() => {
 
-            this.signals.spaceChanged.dispatch(this.getValue() === true ? 'local' : 'world');
+            this.signals.spaceChanged.dispatch(local.getValue() === true ? 'local' : 'world');
 
         });
         groups.add(local);
+
         this.signals.transformModeChanged.add((mode) => {
 
             translate.dom.classList.remove('selected');
@@ -89,6 +90,8 @@ export class ToolBar {
             groups.setDisplay(object === null ? 'none' : '');
             if (object !== null) {
                 this.container.setHeight('64px');
+            }else{
+                this.container.setHeight('32px');
             }
         });
     }

@@ -18,3 +18,4 @@ const render = new WebGLRenderer();
 editor.signals.rendererChanged.dispatch(render);
 
 console.log(editor);
+console.log(viewport);
