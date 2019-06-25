@@ -7,6 +7,7 @@ import {AddObjectCommand} from "../utils/Commands/AddObjectCommand";
 import UI from "../utils/ui";
 import {ToolBar} from "../utils/ToolBar";
 import {ViewPortInfo} from "../utils/ViewPort.info";
+import {CylinderGeometry} from "./CylinderGeometry";
 
 const editor = new Editor();
 const viewport = new ViewPortInfo(editor);
@@ -16,6 +17,5 @@ document.body.appendChild(toolBar.container.dom);
 const render = new WebGLRenderer();
 //
 editor.signals.rendererChanged.dispatch(render);
-
+const cylinder = new CylinderGeometry(editor);
 console.log(editor);
-console.log(viewport);

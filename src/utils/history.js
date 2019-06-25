@@ -12,9 +12,9 @@ export default class History {
         new Command(editor);
     }
 
-    excute(cmd, optionalName) {
+    execute(cmd, optionalName) {
         cmd.name = (optionalName !== undefined) ? optionalName : cmd.name;
-        cmd.excute();
+        cmd.execute();
     }
 
     clear() {

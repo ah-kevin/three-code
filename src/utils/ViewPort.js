@@ -18,6 +18,7 @@ export class ViewPort {
         this.renderer = null;
         this.camera = editor.camera;
         this.defaultCamera = editor.camera;
+        this.helpers = editor.helpers;
         this.select = editor.select;
         this.scene = editor.scene;
         this.sceneHelpers = editor.sceneHelpers;
@@ -169,6 +170,11 @@ export class ViewPort {
             this.selectionBox.visible = false;
             this.transformControls.detach();
             if (object !== null && object !== this.scene && object !== this.camera) {
+                // 判断当前选中的对象是否被object3d的子对象 是就选择父级
+                if ("Object3D" === object.parent.type) {
+                    object = object.parent;
+                }
+                // TODO: 给参数判断当前是选择物品还是面
                 this.box.setFromObject(object);
                 if (this.box.isEmpty() === false) {
 
@@ -177,6 +183,7 @@ export class ViewPort {
                 }
                 this.transformControls.attach(object);
             }
+            console.log('objectSelected: %o', object);
             this.render();
         });
 
@@ -189,6 +196,19 @@ export class ViewPort {
 
         this.signals.objectFocused.add(object => {
             this.controls.focus(object);
+        });
+
+        this.signals.objectChanged.add(object => {
+            if (this.select === object) {
+                this.selectionBox.setFromObject(object);
+            }
+            if (object.isPerspectiveCamera) {
+                object.updateProjectionMatrix();
+            }
+            if (this.helpers[object.id] !== undefined) {
+                this.helpers[object.id].update();
+            }
+            this.render();
         });
 
         this.signals.geometryChanged.add(object => {
