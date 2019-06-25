@@ -2,9 +2,11 @@ import * as THREE from "three";
 import {TransformControls} from 'three/examples/jsm/controls/TransformControls';
 import {EditorControls} from 'three/examples/jsm/controls/EditorControls';
 import UI from "./ui";
+import {SetPositionCommand} from "./Commands/SetPositionCommand";
+import {SetRotationCommand} from "./Commands/SetRotationCommand";
 
 export class ViewPort {
-    constructor(editor) {
+    constructor(editor, helper) {
         this.container = new UI.Panel();
         // 设置dom的样式
         this.container.setId('viewport');
@@ -13,7 +15,6 @@ export class ViewPort {
         this.container.setBottom('0');
         this.container.setLeft('0');
         this.container.setRight('0');
-
         this.signals = editor.signals;
         this.renderer = null;
         this.camera = editor.camera;
@@ -23,6 +24,7 @@ export class ViewPort {
         this.scene = editor.scene;
         this.sceneHelpers = editor.sceneHelpers;
         this.objects = [];
+        this.openHelper = helper || false;
 
         this.objectPositionOnDown = null;
         this.objectRotationOnDown = null;
@@ -32,10 +34,38 @@ export class ViewPort {
         this.onUpPosition = new THREE.Vector2();
         this.onDoubleClickPosition = new THREE.Vector2();
 
-        // helpers
-        this.addHelpers();
+        if (this.openHelper) {
+            // helpers
+            this.addHelpers();
+            this.addControls(editor);
+        }
         this.registerSignals();
 
+
+        // object选取
+        this.raycaster = new THREE.Raycaster();
+        this.mouse = new THREE.Vector2();
+
+        // events
+        this.addEvents();
+
+        // 添加控制器
+        this.addEditorControls();
+
+    }
+
+    addHelpers() {
+        this.addGridHelpers();
+        // add box
+        this.box = new THREE.Box3();
+        this.selectionBox = new THREE.BoxHelper();
+        this.selectionBox.material.depthTest = false;
+        this.selectionBox.material.transparent = true;
+        this.selectionBox.visible = false;
+        this.sceneHelpers.add(this.selectionBox);
+    }
+
+    addControls(editor) {
         // Controls
         this.transformControls = new TransformControls(this.camera, this.container.dom);
         this.transformControls.addEventListener('change', () => {
@@ -47,7 +77,7 @@ export class ViewPort {
                         editor.helpers[object.id].update();
                     }
                     // 更新object3d数据
-                    // this.signals.refreshSidebarObject3D.dispatch(object);
+                    this.signals.refreshSidebarObject3D.dispatch(object);
                 }
                 this.render();
             }
@@ -71,7 +101,7 @@ export class ViewPort {
 
                         if (!this.objectPositionOnDown.equals(object.position)) {
 
-                            // editor.execute(new SetPositionCommand(object, object.position, this.objectPositionOnDown));
+                            editor.execute(new SetPositionCommand(object, object.position, this.objectPositionOnDown));
 
                         }
 
@@ -80,9 +110,7 @@ export class ViewPort {
                     case 'rotate':
 
                         if (!this.objectRotationOnDown.equals(object.rotation)) {
-
-                            // editor.execute(new SetRotationCommand(object, object.rotation, this.objectRotationOnDown));
-
+                            editor.execute(new SetRotationCommand(object, object.rotation, this.objectRotationOnDown));
                         }
 
                         break;
@@ -107,27 +135,37 @@ export class ViewPort {
 
         this.sceneHelpers.add(this.transformControls);
 
-        // object选取
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
+        this.signals.objectSelected.add((object) => {
+            this.selectionBox.visible = false;
+            this.transformControls.detach();
+            if (object !== null && object !== this.scene && object !== this.camera) {
+                // 判断当前选中的对象是否被object3d的子对象 是就选择父级
+                if ("Object3D" === object.parent.type) {
+                    object = object.parent;
+                }
+                // TODO: 给参数判断当前是选择物品还是面
+                this.box.setFromObject(object);
+                if (this.box.isEmpty() === false) {
 
-        // events
-        this.addEvents();
-        this.controls = new EditorControls(this.camera, this.container.dom);
-        this.controls.addEventListener('change', () => {
-            this.signals.cameraChanged.dispatch(this.camera);
+                    this.selectionBox.setFromObject(object);
+                    this.selectionBox.visible = true;
+                }
+                this.transformControls.attach(object);
+            }
+            console.log('objectSelected: %o', object);
+            this.render();
         });
-    }
 
-    addHelpers() {
-        this.addGridHelpers();
-        // add box
-        this.box = new THREE.Box3();
-        this.selectionBox = new THREE.BoxHelper();
-        this.selectionBox.material.depthTest = false;
-        this.selectionBox.material.transparent = true;
-        this.selectionBox.visible = false;
-        this.sceneHelpers.add(this.selectionBox);
+        this.signals.transformModeChanged.add((mode) => {
+            this.transformControls.setMode(mode);
+        });
+        this.signals.spaceChanged.add((space) => {
+            this.transformControls.setSpace(space);
+        });
+
+        this.signals.objectFocused.add(object => {
+            this.controls.focus(object);
+        });
     }
 
     registerSignals() {
@@ -166,37 +204,6 @@ export class ViewPort {
             });
         });
 
-        this.signals.objectSelected.add((object) => {
-            this.selectionBox.visible = false;
-            this.transformControls.detach();
-            if (object !== null && object !== this.scene && object !== this.camera) {
-                // 判断当前选中的对象是否被object3d的子对象 是就选择父级
-                if ("Object3D" === object.parent.type) {
-                    object = object.parent;
-                }
-                // TODO: 给参数判断当前是选择物品还是面
-                this.box.setFromObject(object);
-                if (this.box.isEmpty() === false) {
-
-                    this.selectionBox.setFromObject(object);
-                    this.selectionBox.visible = true;
-                }
-                this.transformControls.attach(object);
-            }
-            console.log('objectSelected: %o', object);
-            this.render();
-        });
-
-        this.signals.transformModeChanged.add((mode) => {
-            this.transformControls.setMode(mode);
-        });
-        this.signals.spaceChanged.add((space) => {
-            this.transformControls.setSpace(space);
-        });
-
-        this.signals.objectFocused.add(object => {
-            this.controls.focus(object);
-        });
 
         this.signals.objectChanged.add(object => {
             if (this.select === object) {
@@ -211,6 +218,19 @@ export class ViewPort {
             this.render();
         });
 
+        this.signals.viewportCameraChanged.add(viewportCamera => {
+            if (viewportCamera.isPerspectiveCamera) {
+
+                // viewportCamera.aspect = editor.camera.aspect;
+                // viewportCamera.projectionMatrix.copy( this.camera.projectionMatrix );
+
+            } else if (!viewportCamera.isOrthographicCamera) {
+
+                throw "Invalid camera set as viewport";
+            }
+            this.camera = viewportCamera;
+            this.addEditorControls();
+        });
         this.signals.geometryChanged.add(object => {
             if (object !== undefined) {
                 this.selectionBox.setFromObject(object);
@@ -309,7 +329,6 @@ export class ViewPort {
         if (this.onDownPosition.distanceTo(this.onUpPosition) === 0) {
 
             let intersects = this.getIntersects(this.onUpPosition, this.objects);
-            console.log(intersects);
             if (intersects.length > 0) {
 
                 let object = intersects[0].object;
@@ -349,4 +368,10 @@ export class ViewPort {
         return this.raycaster.intersectObjects(objects);
     }
 
+    addEditorControls() {
+        this.controls = new EditorControls(this.camera, this.container.dom);
+        this.controls.addEventListener('change', () => {
+            this.signals.cameraChanged.dispatch(this.camera);
+        });
+    }
 }

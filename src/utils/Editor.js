@@ -139,6 +139,11 @@ export class Editor {
         }
     }
 
+    setViewportCamera(uuid) {
+        this.viewportCamera = this.cameras[uuid];
+        this.signals.viewportCameraChanged.dispatch(this.viewportCamera);
+    }
+
     addHelper(object) {
         const geometry = new THREE.SphereBufferGeometry(2, 4, 2);
         const material = new THREE.MeshBasicMaterial({color: 0xff0000, visible: false});

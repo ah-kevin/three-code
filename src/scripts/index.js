@@ -10,7 +10,7 @@ import {ViewPortInfo} from "../utils/ViewPort.info";
 import {CylinderGeometry} from "./CylinderGeometry";
 
 const editor = new Editor();
-const viewport = new ViewPortInfo(editor);
+const viewport = new ViewPortInfo(editor, false);
 document.body.appendChild(viewport.container.dom);
 const toolBar = new ToolBar(editor);
 document.body.appendChild(toolBar.container.dom);
