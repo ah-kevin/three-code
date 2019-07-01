@@ -6,7 +6,7 @@ import {SetPositionCommand} from "./Commands/SetPositionCommand";
 import {SetRotationCommand} from "./Commands/SetRotationCommand";
 
 export class ViewPort {
-    constructor(editor, helper) {
+    constructor(editor) {
         this.container = new UI.Panel();
         // 设置dom的样式
         this.container.setId('viewport');
@@ -24,7 +24,7 @@ export class ViewPort {
         this.scene = editor.scene;
         this.sceneHelpers = editor.sceneHelpers;
         this.objects = [];
-        this.openHelper = helper || false;
+        this.options = editor.options;
 
         this.objectPositionOnDown = null;
         this.objectRotationOnDown = null;
@@ -34,11 +34,11 @@ export class ViewPort {
         this.onUpPosition = new THREE.Vector2();
         this.onDoubleClickPosition = new THREE.Vector2();
 
-        if (this.openHelper) {
-            // helpers
-            this.addHelpers();
-            this.addControls(editor);
-        }
+        // if (this.options && this.options.helper) {
+        // helpers
+        this.addHelpers();
+        this.addControls(editor);
+        // }
         this.registerSignals();
 
 
@@ -163,9 +163,6 @@ export class ViewPort {
             this.transformControls.setSpace(space);
         });
 
-        this.signals.objectFocused.add(object => {
-            this.controls.focus(object);
-        });
     }
 
     registerSignals() {
@@ -187,7 +184,7 @@ export class ViewPort {
             this.render();
         });
         this.signals.sceneGraphChanged.add(_ => {
-            console.log(this);
+            // console.log(this);
             this.render();
         });
         this.signals.cameraChanged.add(_ => {
@@ -204,6 +201,10 @@ export class ViewPort {
             });
         });
 
+
+        this.signals.objectFocused.add(object => {
+            this.controls.focus(object);
+        });
 
         this.signals.objectChanged.add(object => {
             if (this.select === object) {
@@ -229,6 +230,7 @@ export class ViewPort {
                 throw "Invalid camera set as viewport";
             }
             this.camera = viewportCamera;
+            this.addHelpers();
             this.addEditorControls();
         });
         this.signals.geometryChanged.add(object => {
@@ -246,7 +248,6 @@ export class ViewPort {
             this.sceneHelpers.updateMatrixWorld();
             this.renderer.render(this.sceneHelpers, this.camera);
         }
-
     }
 
     addGridHelpers() {

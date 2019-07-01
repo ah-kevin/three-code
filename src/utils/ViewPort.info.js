@@ -2,8 +2,8 @@ import {ViewPort} from "./ViewPort";
 import UI from "./ui";
 
 export class ViewPortInfo extends ViewPort {
-    constructor(editor, helper) {
-        super(editor, helper);
+    constructor(editor) {
+        super(editor);
         this.setUI();
         this.signals.objectAdded.add(() => this.update());
         this.signals.objectRemoved.add(() => this.update());

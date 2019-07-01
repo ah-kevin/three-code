@@ -4,23 +4,21 @@
  */
 import {Command} from "../Command";
 
-export class AddHelperCommand extends Command {
+export class SetHelperCommand extends Command {
     constructor(object) {
         super();
-        this.type = 'AddHelperCommand';
+        this.type = 'SetHelperCommand';
         this.object = object;
         if (object !== undefined) {
-            this.name = 'Add Object: ' + object.name;
+            this.name = 'Set Object: ' + object.name;
         }
     }
 
     execute() {
-        this.editor.addObject(this.object);
-        this.editor.select(this.object);
+        this.editor.setHelper(this.object);
     }
 
     undo() {
-        this.editor.removeObject(this.object);
-        this.editor.deselect();
+
     }
 }

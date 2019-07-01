@@ -3,7 +3,8 @@ import signals from "signals";
 import History from './history';
 
 export class Editor {
-    constructor() {
+    constructor(options) {
+        this.options = options || null;
         this.DEFAULT_CAMERA = new THREE.PerspectiveCamera(50, 1, 0.01, 1000);
         this.DEFAULT_CAMERA.name = "Camera";
         this.DEFAULT_CAMERA.position.set(0, 5, 10);
@@ -145,13 +146,15 @@ export class Editor {
     }
 
     addHelper(object) {
+        if (this.options && !this.options.helper) {
+            return;
+        }
         const geometry = new THREE.SphereBufferGeometry(2, 4, 2);
         const material = new THREE.MeshBasicMaterial({color: 0xff0000, visible: false});
         let helper;
         if (object.isCamera) {
 
             helper = new THREE.CameraHelper(object);
-
         } else if (object.isPointLight) {
 
             helper = new THREE.PointLightHelper(object, 1);
